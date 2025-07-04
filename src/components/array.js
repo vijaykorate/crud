@@ -33,26 +33,7 @@ const array = [
         Name: "Priya",
         Age: "20",
     },
-    {
-        id: "7",
-        Name: "Karan",
-        Age: "26",
-    },
-    {
-        id: "8",
-        Name: "Neha",
-        Age: "19",
-    },
-    {
-        id: "9",
-        Name: "Rohan",
-        Age: "27",
-    },
-    {
-        id: "10",
-        Name: "Pooja",
-        Age: "28",
-    }
+  
 ];
 
 
