@@ -1,94 +1,56 @@
-
-
 import React, { useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
-import array from "./array";
-import { v4 as uuid } from "uuid";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function Create() {
-    
-    // fetching a value in jsx
-    const [name, setname] = useState("");
-    const [age, setage] = useState("");
+  const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const navigate = useNavigate();
 
-    
-    let history = useNavigate();
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    axios
+      .post("http://localhost:5000/users", { name, age })
+      .then(() => {
+        navigate("/"); // go back to Home
+      })
+      .catch((err) => console.error(err));
+  };
 
-    const handelSubmit = (e) => {
-        e.preventDefault(); // Prevent reload
+  return (
+    <div style={{ margin: "2rem" }}>
+      <h2>Create New User</h2>
+      <Form onSubmit={handleSubmit}>
+        <Form.Group className="mb-3">
+          <Form.Label>Name</Form.Label>
+          <Form.Control
+            type="text"
+            placeholder="Enter name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </Form.Group>
 
-        const ids = uuid(); // Creating unique id
-        let uni = ids.slice(0, 8); // Slicing unique id
+        <Form.Group className="mb-3">
+          <Form.Label>Age</Form.Label>
+          <Form.Control
+            type="number"
+            placeholder="Enter age"
+            value={age}
+            onChange={(e) => setAge(e.target.value)}
+            required
+          />
+        </Form.Group>
 
-        // Fetching a value from usestate and
-        // pushing to javascript object
-        let a = name,
-            b = age;
-        if (name == "" || age == "") {
-            alert("invalid input");
-            return;
-        }
-        array.push({ id: uni, Name: a, Age: b });
-
-        // Redirecting to home page after creation done
-        history("/");
-    };
-
-    return (
-        <div>
-            <Form
-                className="d-grid gap-2"
-                style={{ margin: "5rem" }}
-            >
-               
-                <Form.Group
-                    className="mb-3"
-                    controlId="formBasicName"
-                >
-                    <Form.Control
-                        onChange={(e) =>
-                            setname(e.target.value)
-                        }
-                        type="text"
-                        placeholder="Enter Name"
-                        required
-                    />
-                </Form.Group>
-
-              
-                <Form.Group
-                    className="mb-3"
-                    controlId="formBasicAge"
-                >
-                    <Form.Control
-                        onChange={(e) =>
-                            setage(e.target.value)
-                        }
-                        type="number"
-                        placeholder="Age"
-                        required
-                    />
-                </Form.Group>
-
-                <Button
-                    onClick={(e) => handelSubmit(e)}
-                    variant="primary"
-                    type="submit"
-                >
-                    Submit
-                </Button>
-
-                {/* Redirecting back to home page */}
-                <Link className="d-grid gap-2" to="/">
-                    <Button variant="info" size="lg">
-                        Home
-                    </Button>
-                </Link>
-            </Form>
-        </div>
-    );
+        <Button type="submit" variant="success">
+          Create
+        </Button>
+      </Form>
+    </div>
+  );
 }
 
 export default Create;
