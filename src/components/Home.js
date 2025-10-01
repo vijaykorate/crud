@@ -1,80 +1,145 @@
 import React, { useEffect, useState } from "react";
-import { Button, Table } from "react-bootstrap";
-import "bootstrap/dist/css/bootstrap.min.css";
-import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import {
+  Button,
+  Table,
+  Spinner,
+  Alert,
+  Form,
+  InputGroup,
+} from "react-bootstrap";
+import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
+import api from "../api";
+
+const ActionButton = ({ onClick, variant, children }) => (
+  <Button onClick={onClick} variant={variant} className="me-2">
+    {children}
+  </Button>
+);
 
 function Home() {
-  let history = useNavigate();
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
-  // Fetch users from backend
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/users")
-      .then((res) => setUsers(res.data))
-      .catch((err) => console.error(err));
+    fetchUsers();
   }, []);
 
-  // Save for Edit.js
-  function setID(id, name, age) {
-    localStorage.setItem("id", id);
-    localStorage.setItem("Name", name);
-    localStorage.setItem("Age", age);
-  }
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get("/users");
+      setUsers(res.data);
+    } catch (err) {
+      setError("Failed to fetch users.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Delete user
-  function deleted(id) {
-    axios
-      .delete(`http://localhost:5000/users/${id}`)
-      .then(() => {
-        // Remove from state after delete
-        setUsers(users.filter((user) => user.Id !== id));
-      })
-      .catch((err) => console.error(err));
-  }
+  const setID = (id, Name, Age) => {
+    localStorage.setItem("id", id);
+    localStorage.setItem("Name", Name);
+    localStorage.setItem("Age", Age);
+  };
+
+  const deleted = async (id) => {
+    if (window.confirm("Are you sure you want to delete this user?")) {
+      try {
+        await api.delete(`/users/${id}`);
+        setUsers(users.filter((u) => u.Id !== id));
+        toast.success("User deleted successfully!");
+      } catch (err) {
+        setError("Failed to delete user.");
+        toast.error("Delete failed!");
+      }
+    }
+  };
+
+  const filteredUsers = users.filter((user) =>
+    user.Name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div style={{ margin: "2rem" }}>
-      <h1 className="text-center mb-4">User Management</h1>
-      <Table striped bordered hover responsive className="shadow-sm">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Age</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((item) => (
-            <tr key={item.Id}>
-              <td>{item.Name}</td>
-              <td>{item.Age}</td>
-              <td>
-                <Link to={`/edit`}>
-                  <Button
-                    onClick={() => setID(item.Id, item.Name, item.Age)}
-                    variant="info"
-                    className="me-2"
-                  >
-                    Edit
-                  </Button>
-                </Link>
-                <Button onClick={() => deleted(item.Id)} variant="danger">
-                  Delete
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      <div className="d-grid gap-2 mt-4">
-        <Link to="/create">
-          <Button variant="success" size="lg">
-            Create New User
-          </Button>
-        </Link>
-      </div>
+    <div className="container mt-5">
+      <h1 className="text-center mb-4">User Management Dashboard</h1>
+
+      {/* Search */}
+      <InputGroup className="mb-3">
+        <Form.Control
+          placeholder="Search by name..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <Button variant="secondary" onClick={() => setSearch("")}>
+          Clear
+        </Button>
+      </InputGroup>
+
+      {/* Error */}
+      {error && <Alert variant="danger">{error}</Alert>}
+
+      {/* Loading */}
+      {loading ? (
+        <div className="text-center my-5">
+          <Spinner animation="border" />
+        </div>
+      ) : (
+        <>
+          <Table striped bordered hover responsive className="shadow-sm">
+            <thead className="table-dark">
+              <tr>
+                <th>Name</th>
+                <th>Age</th>
+                <th className="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.length ? (
+                filteredUsers.map(({ Id, Name, Age }) => (
+                  <tr key={Id} style={{ backgroundColor: "#fff" }}>
+                    <td>{Name}</td>
+                    <td>{Age}</td>
+                    <td className="text-center">
+                      <Link to="/edit">
+                        <ActionButton
+                          onClick={() => setID(Id, Name, Age)}
+                          variant="info"
+                        >
+                          Edit
+                        </ActionButton>
+                      </Link>
+                      <ActionButton
+                        onClick={() => deleted(Id)}
+                        variant="danger"
+                      >
+                        Delete
+                      </ActionButton>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="3" className="text-center">
+                    No users found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
+
+          {/* Create Button Below Table */}
+          <div className="d-grid mt-3">
+            <Link to="/create">
+              <Button variant="success" size="lg">
+                + Create New User
+              </Button>
+            </Link>
+          </div>
+        </>
+      )}
     </div>
   );
 }

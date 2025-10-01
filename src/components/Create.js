@@ -1,27 +1,54 @@
 import React, { useState } from "react";
-import { Button, Form } from "react-bootstrap";
-import "bootstrap/dist/css/bootstrap.min.css";
+import { Button, Form, Spinner, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { toast } from "react-toastify";
+import api from "../api";
+
+const ActionButton = ({ onClick, variant, children, disabled, type }) => (
+  <Button
+    onClick={onClick}
+    variant={variant}
+    disabled={disabled}
+    type={type}
+    className="me-2"
+  >
+    {children}
+  </Button>
+);
 
 function Create() {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    axios
-      .post("http://localhost:5000/users", { name, age })
-      .then(() => {
-        navigate("/"); // go back to Home
-      })
-      .catch((err) => console.error(err));
+    if (!name || !age) {
+      setError("Name and Age cannot be empty.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+
+    try {
+      await api.post("/users", { name, age: Number(age) });
+      toast.success("User created successfully!");
+      setTimeout(() => navigate("/"), 1200);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to create user.");
+      toast.error("Create failed!");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={{ margin: "2rem" }}>
-      <h2>Create New User</h2>
+    <div className="container mt-5" style={{ maxWidth: "500px" }}>
+      <h2 className="mb-4 text-center">Create New User</h2>
+      {error && <Alert variant="danger">{error}</Alert>}
       <Form onSubmit={handleSubmit}>
         <Form.Group className="mb-3">
           <Form.Label>Name</Form.Label>
@@ -33,7 +60,6 @@ function Create() {
             required
           />
         </Form.Group>
-
         <Form.Group className="mb-3">
           <Form.Label>Age</Form.Label>
           <Form.Control
@@ -44,10 +70,14 @@ function Create() {
             required
           />
         </Form.Group>
-
-        <Button type="submit" variant="success">
-          Create
-        </Button>
+        <div className="d-grid gap-2">
+          <ActionButton type="submit" variant="success" disabled={loading}>
+            {loading && (
+              <Spinner animation="border" size="sm" className="me-2" />
+            )}{" "}
+            Create
+          </ActionButton>
+        </div>
       </Form>
     </div>
   );

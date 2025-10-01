@@ -7,6 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ---- SQL Server Configuration ----
 const dbConfig = {
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -15,15 +16,24 @@ const dbConfig = {
   port: Number(process.env.DB_PORT || 1433),
   options: {
     encrypt: process.env.DB_ENCRYPT === "true",
-    trustServerCertificate: true, // local dev
+    trustServerCertificate: true,
   },
 };
 
-// connect pool once
+// ---- Connect to SQL Server ----
 const pool = new sql.ConnectionPool(dbConfig);
 const poolConnect = pool.connect();
 
-// ------- CRUD -------
+pool.on("error", (err) => {
+  console.error("SQL Pool Error: ", err);
+});
+
+// ---- Root Route ----
+app.get("/", (req, res) => {
+  res.send("API is running!");
+});
+
+// ---- CRUD Routes ----
 app.get("/users", async (req, res) => {
   try {
     await poolConnect;
@@ -31,8 +41,8 @@ app.get("/users", async (req, res) => {
       .request()
       .query("SELECT * FROM Users ORDER BY Id DESC");
     res.json(result.recordset);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -46,15 +56,15 @@ app.post("/users", async (req, res) => {
       .input("Age", sql.Int, age)
       .query("INSERT INTO Users (Name, Age) VALUES (@Name, @Age)");
     res.json({ message: "User added" });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
 app.put("/users/:id", async (req, res) => {
   try {
-    const { name, age } = req.body;
     const { id } = req.params;
+    const { name, age } = req.body;
     await poolConnect;
     await pool
       .request()
@@ -63,8 +73,8 @@ app.put("/users/:id", async (req, res) => {
       .input("Age", sql.Int, age)
       .query("UPDATE Users SET Name=@Name, Age=@Age WHERE Id=@Id");
     res.json({ message: "User updated" });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -77,10 +87,11 @@ app.delete("/users/:id", async (req, res) => {
       .input("Id", sql.Int, Number(id))
       .query("DELETE FROM Users WHERE Id=@Id");
     res.json({ message: "User deleted" });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-const PORT = 5000;
+// ---- Start Server ----
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`API running at http://localhost:${PORT}`));
